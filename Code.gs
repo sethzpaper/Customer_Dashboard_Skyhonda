@@ -1,13 +1,121 @@
 
 // --- CONFIGURATION ---
 // <<<< ใส่ GOOGLE SHEET ID ของคุณที่นี่ >>>>
-const SPREADSHEET_ID = "YOUR_SPREADSHEET_ID_HERE"; 
+const SPREADSHEET_ID = "1lal4f1hYNNbYIc7Ytcufkacn7T_h3LyDnksxQAwNjp8"; 
 
 // --- WEB APP ENTRY POINT ---
 function doGet(e) {
+  const action = e.parameter.action;
+  
+  if (action === 'getCarModels') {
+    const data = getSheetData('CarModels');
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (action === 'getInitialData') {
+    const data = getInitialData();
+    return ContentService.createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Default: Return HTML for direct access
   return HtmlService.createHtmlOutputFromFile('index')
       .setTitle("Customer Dashboard - Sky Honda")
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
+function doPost(e) {
+  try {
+    const postData = JSON.parse(e.postData.contents);
+    const action = postData.action;
+    const data = postData.data;
+    
+    if (action === 'submitSurvey') {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('SurveyResponses');
+      
+      // Get headers to ensure correct column mapping
+      const headers = sheet.getDataRange().getValues()[0];
+      const newRow = headers.map(header => data[header] || '');
+      
+      sheet.appendRow(newRow);
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'saveCarModel') {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('CarModels');
+      const headers = sheet.getDataRange().getValues()[0];
+      const newRow = headers.map(header => data[header] || '');
+      
+      // Check if updating or adding
+      const existingData = sheet.getDataRange().getValues();
+      let rowIndex = -1;
+      if (data.ModelID) {
+        for (let i = 1; i < existingData.length; i++) {
+          if (existingData[i][0] == data.ModelID) {
+            rowIndex = i + 1;
+            break;
+          }
+        }
+      }
+      
+      if (rowIndex > 0) {
+        sheet.getRange(rowIndex, 1, 1, newRow.length).setValues([newRow]);
+      } else {
+        sheet.appendRow(newRow);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'deleteCarModel') {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('CarModels');
+      const values = sheet.getDataRange().getValues();
+      const modelId = data.ModelID;
+      
+      for (let i = 1; i < values.length; i++) {
+        if (values[i][0].toString() === modelId.toString()) {
+          sheet.deleteRow(i + 1);
+          break;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'saveCustomers') {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('Customers');
+      const customers = data; // Array of customer objects
+      
+      customers.forEach(customer => {
+        sheet.appendRow([
+          customer.CustomerID,
+          customer.Name,
+          customer.Phone,
+          customer.Email,
+          customer.CarModel,
+          customer.DeliveryDate
+        ]);
+      });
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unknown action' }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // Helper to include HTML/JS files

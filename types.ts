@@ -6,6 +6,7 @@ export interface SurveyResponse {
   Timestamp: string;
   CustomerID: string;
   SalespersonID: string;
+  CarModel?: string;
   SurveyType: SurveyType;
   Sales_InfoClarity: number; // 1-5
   Sales_GoodFeedback: string;
@@ -28,4 +29,10 @@ export interface Salesperson {
   SalespersonID: string;
   Name: string;
   Team: string;
+}
+
+export interface DashboardSummary {
+  satisfactionScore: number;
+  nps: number;
+  followUps: number;
 }

@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, TrendingUp, Users, ClipboardCheck, AlertCircle } from 'lucide-react';
 import { FeaturedModel } from '../App';
-import { mockSurveys, mockCustomers } from '../data/mockData';
+import { DashboardSummary, SurveyResponse } from '../types';
 
 interface DashboardProps {
   featuredModels: FeaturedModel[];
   isDarkMode: boolean;
+  summary: DashboardSummary | null;
+  recentSurveys: SurveyResponse[];
+  totalCustomers: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ featuredModels, isDarkMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ featuredModels, isDarkMode, summary, recentSurveys, totalCustomers }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -23,17 +26,17 @@ const Dashboard: React.FC<DashboardProps> = ({ featuredModels, isDarkMode }) => 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % featuredModels.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + featuredModels.length) % featuredModels.length);
 
-  // Calculate real stats from mock data
-  const totalSurveys = mockSurveys.length;
-  const avgSatisfaction = (mockSurveys.reduce((acc, s) => acc + s.Sales_InfoClarity, 0) / totalSurveys).toFixed(1);
-  const totalCustomers = mockCustomers.length;
-  const pendingCases = mockSurveys.filter(s => s.Status !== 'แก้ไขแล้ว').length;
+  // Calculate real stats from props or use defaults
+  const totalSurveys = recentSurveys.length;
+  const avgSatisfaction = summary?.satisfactionScore || 0;
+  const nps = summary?.nps || 0;
+  const pendingCases = summary?.followUps || 0;
 
   const kpis = [
-    { label: 'ความพึงพอใจรวม', value: avgSatisfaction, sub: '+0.2 จากเดือนก่อน', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { label: 'จำนวนลูกค้าทั้งหมด', value: totalCustomers.toString(), sub: '+12% สัปดาห์นี้', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'แบบสำรวจที่ตอบแล้ว', value: totalSurveys.toString(), sub: 'เป้าหมาย 1,000', icon: ClipboardCheck, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'เคสที่ต้องติดตาม', value: pendingCases.toString(), sub: 'เร่งด่วน 3 เคส', icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
+    { label: 'ความพึงพอใจรวม', value: avgSatisfaction.toString(), sub: 'จากแบบสำรวจล่าสุด', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { label: 'จำนวนลูกค้าทั้งหมด', value: totalCustomers.toString(), sub: 'ในระบบทั้งหมด', icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'NPS Score', value: nps.toString(), sub: 'ดัชนีความภักดี', icon: ClipboardCheck, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+    { label: 'เคสที่ต้องติดตาม', value: pendingCases.toString(), sub: 'สถานะเปิดอยู่', icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
   ];
 
   return (

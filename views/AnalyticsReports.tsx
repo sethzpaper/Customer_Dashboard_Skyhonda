@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart3, TrendingUp, Users, Calendar, Download, Filter, PieChart as PieChartIcon, Printer, X, Check, FileText } from 'lucide-react';
-import { mockSurveys, mockSalespersons, mockCustomers } from '../data/mockData';
+import { SurveyResponse, Salesperson, Customer } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend 
@@ -8,31 +8,38 @@ import {
 
 interface AnalyticsReportsProps {
   isDarkMode: boolean;
+  surveys: SurveyResponse[];
+  salespersons: Salesperson[];
+  customers: Customer[];
 }
 
-const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ isDarkMode }) => {
+const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ isDarkMode, surveys, salespersons, customers }) => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printType, setPrintType] = useState<'weekly' | 'monthly'>('monthly');
 
-  const avgSatisfaction = (mockSurveys.reduce((acc, s) => acc + s.Sales_InfoClarity, 0) / mockSurveys.length).toFixed(1);
-  const followUpRate = ((mockSurveys.filter(s => s.FollowUp_Requested === 'ใช่').length / mockSurveys.length) * 100).toFixed(0);
+  const avgSatisfaction = surveys.length > 0 
+    ? (surveys.reduce((acc, s) => acc + s.Sales_InfoClarity, 0) / surveys.length).toFixed(1)
+    : '0.0';
+  const followUpRate = surveys.length > 0
+    ? ((surveys.filter(s => s.FollowUp_Requested === 'ใช่').length / surveys.length) * 100).toFixed(0)
+    : '0';
 
   // Data for Satisfaction Distribution
   const scoreDist = [1, 2, 3, 4, 5].map(score => ({
     score: `${score} ดาว`,
-    count: mockSurveys.filter(s => s.Sales_InfoClarity === score).length
+    count: surveys.filter(s => s.Sales_InfoClarity === score).length
   }));
 
   // Data for Survey Type Distribution
   const typeDist = [
-    { name: 'Delivery', value: mockSurveys.filter(s => s.SurveyType === 'Delivery').length },
-    { name: '7-Day', value: mockSurveys.filter(s => s.SurveyType === '7-Day').length },
-    { name: '30-Day', value: mockSurveys.filter(s => s.SurveyType === '30-Day').length },
+    { name: 'Delivery', value: surveys.filter(s => s.SurveyType === 'Delivery').length },
+    { name: '7-Day', value: surveys.filter(s => s.SurveyType === '7-Day').length },
+    { name: '30-Day', value: surveys.filter(s => s.SurveyType === '30-Day').length },
   ];
 
   // Data for Salesperson Performance
-  const salesPerformance = mockSalespersons.map(sp => {
-    const spSurveys = mockSurveys.filter(s => s.SalespersonID === sp.SalespersonID);
+  const salesPerformance = salespersons.map(sp => {
+    const spSurveys = surveys.filter(s => s.SalespersonID === sp.SalespersonID);
     const avg = spSurveys.length > 0 
       ? (spSurveys.reduce((acc, s) => acc + s.Sales_InfoClarity, 0) / spSurveys.length).toFixed(1)
       : 0;
@@ -43,10 +50,10 @@ const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ isDarkMode }) => {
   });
 
   // Data for Satisfaction Trend (Grouped by Date)
-  const trendData = mockSurveys
+  const trendData = surveys
     .sort((a, b) => new Date(a.Timestamp).getTime() - new Date(b.Timestamp).getTime())
     .reduce((acc: any[], curr) => {
-      const date = curr.Timestamp.split(' ')[0];
+      const date = curr.Timestamp.split('T')[0];
       const existing = acc.find(item => item.date === date);
       if (existing) {
         existing.total += curr.Sales_InfoClarity;
@@ -68,7 +75,7 @@ const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ isDarkMode }) => {
   const getPrintData = () => {
     const grouped: Record<string, any> = {};
     
-    mockSurveys.forEach(survey => {
+    surveys.forEach(survey => {
       const date = new Date(survey.Timestamp);
       let key = '';
       
@@ -167,7 +174,7 @@ const AnalyticsReports: React.FC<AnalyticsReportsProps> = ({ isDarkMode }) => {
             <p className="text-gray-400 font-medium">จำนวนแบบประเมิน</p>
           </div>
           <div className="flex items-end gap-2">
-            <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>{mockSurveys.length}</span>
+            <span className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>{surveys.length}</span>
             <span className="text-emerald-500 text-sm font-bold mb-1">รายการทั้งหมด</span>
           </div>
         </div>

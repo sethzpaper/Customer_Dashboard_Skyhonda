@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Users, UserPlus, Search, Filter, MoreHorizontal, Mail, Phone, Car, Edit2, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mockCustomers as initialCustomers } from '../data/mockData';
+import { Customer } from '../types';
 
 interface CustomerManagementProps {
   isDarkMode: boolean;
+  customers: Customer[];
 }
 
-const CustomerManagement: React.FC<CustomerManagementProps> = ({ isDarkMode }) => {
-  const [customers, setCustomers] = useState(initialCustomers);
+const CustomerManagement: React.FC<CustomerManagementProps> = ({ isDarkMode, customers }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
@@ -39,9 +39,7 @@ const CustomerManagement: React.FC<CustomerManagementProps> = ({ isDarkMode }) =
   );
 
   const handleDelete = (id: string) => {
-    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลูกค้ารายนี้?')) {
-      setCustomers(prev => prev.filter(c => c.CustomerID !== id));
-    }
+    alert(`ลบข้อมูลลูกค้า: ${id} (ฟังก์ชันนี้กำลังพัฒนาเชื่อมต่อกับ GAS)`);
   };
 
   const handleEdit = (id: string) => {

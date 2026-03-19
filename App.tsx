@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, ClipboardList, Users, Upload, BarChart3, Settings, HelpCircle, Bell, UserCircle, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Users, Upload, BarChart3, Settings, HelpCircle, Bell, UserCircle, Sun, Moon, Car } from 'lucide-react';
 import Dashboard from './views/Dashboard';
 import SurveyForm from './views/SurveyForm';
 import CustomerManagement from './views/CustomerManagement';
 import ImportData from './views/ImportData';
 import AnalyticsReports from './views/AnalyticsReports';
 import UserManagement from './views/UserManagement';
+import CarManagement from './views/CarManagement';
 import SettingsView from './views/Settings';
 import HelpCenter from './views/HelpCenter';
 import Notifications from './views/Notifications';
+import { googleSheetService } from './services/googleSheetService';
+import { DashboardSummary, SurveyResponse, Customer, Salesperson } from './types';
 
-export type View = 'dashboard' | 'survey' | 'customers' | 'importData' | 'reports' | 'users' | 'settings' | 'help' | 'notifications';
+export type View = 'dashboard' | 'survey' | 'customers' | 'carManagement' | 'importData' | 'reports' | 'users' | 'settings' | 'help' | 'notifications';
 
 export interface FeaturedModel {
   id: number;
@@ -18,6 +21,12 @@ export interface FeaturedModel {
   description: string;
   image: string;
   price: string;
+  carType?: string;
+  chassisCode?: string;
+  modelYear?: string;
+  engine?: string;
+  transmission?: string;
+  subModels?: { name: string; price: string }[];
 }
 
 const initialFeaturedModels: FeaturedModel[] = [
@@ -48,6 +57,11 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [featuredModels, setFeaturedModels] = useState<FeaturedModel[]>(initialFeaturedModels);
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
+  const [recentSurveys, setRecentSurveys] = useState<SurveyResponse[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [salespersons, setSalespersons] = useState<Salesperson[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -57,13 +71,74 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch Car Models
+        const models = await googleSheetService.getCarModels();
+        if (models && models.length > 0) {
+          const formattedModels: FeaturedModel[] = models.map(m => ({
+            id: parseInt(m.ModelID.replace(/\D/g, '')) || Math.random(),
+            title: m.ModelName,
+            description: `${m.Engine} ${m.Transmission}`,
+            image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=1200',
+            price: `เริ่มต้น ${m.Price} บาท`,
+            carType: m.Type,
+            chassisCode: m.ChassisCode,
+            modelYear: m.ModelYear,
+            engine: m.Engine,
+            transmission: m.Transmission
+          }));
+          setFeaturedModels(formattedModels);
+        }
+
+        // Fetch Initial Data (Dashboard Summary, etc.)
+        const initialData = await googleSheetService.getInitialData();
+        if (initialData) {
+          setDashboardSummary(initialData.dashboardSummary);
+          setRecentSurveys(initialData.recentSurveys);
+          setCustomers(initialData.customers);
+          setSalespersons(initialData.salespersons);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllData();
+  }, []);
+
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <Dashboard featuredModels={featuredModels} isDarkMode={isDarkMode} />;
-      case 'survey': return <SurveyForm isDarkMode={isDarkMode} />;
-      case 'customers': return <CustomerManagement isDarkMode={isDarkMode} />;
+      case 'dashboard': return (
+        <Dashboard 
+          featuredModels={featuredModels} 
+          isDarkMode={isDarkMode} 
+          summary={dashboardSummary}
+          recentSurveys={recentSurveys}
+          totalCustomers={customers.length}
+        />
+      );
+      case 'survey': return <SurveyForm isDarkMode={isDarkMode} carModels={featuredModels} salespersons={salespersons} />;
+      case 'customers': return <CustomerManagement isDarkMode={isDarkMode} customers={customers} />;
+      case 'carManagement': return (
+        <CarManagement 
+          isDarkMode={isDarkMode} 
+          featuredModels={featuredModels} 
+          setFeaturedModels={setFeaturedModels} 
+        />
+      );
       case 'importData': return <ImportData isDarkMode={isDarkMode} />;
-      case 'reports': return <AnalyticsReports isDarkMode={isDarkMode} />;
+      case 'reports': return (
+        <AnalyticsReports 
+          isDarkMode={isDarkMode} 
+          surveys={recentSurveys}
+          salespersons={salespersons}
+          customers={customers}
+        />
+      );
       case 'users': return <UserManagement isDarkMode={isDarkMode} />;
       case 'settings': return (
         <SettingsView 
@@ -75,7 +150,15 @@ const App: React.FC = () => {
       );
       case 'help': return <HelpCenter isDarkMode={isDarkMode} />;
       case 'notifications': return <Notifications isDarkMode={isDarkMode} />;
-      default: return <Dashboard featuredModels={featuredModels} isDarkMode={isDarkMode} />;
+      default: return (
+        <Dashboard 
+          featuredModels={featuredModels} 
+          isDarkMode={isDarkMode} 
+          summary={dashboardSummary}
+          recentSurveys={recentSurveys}
+          totalCustomers={customers.length}
+        />
+      );
     }
   };
 
@@ -83,6 +166,7 @@ const App: React.FC = () => {
     { id: 'dashboard', label: 'แดชบอร์ด', icon: LayoutDashboard },
     { id: 'survey', label: 'แบบสำรวจ', icon: ClipboardList },
     { id: 'customers', label: 'ลูกค้า', icon: Users },
+    { id: 'carManagement', label: 'จัดการรถยนต์', icon: Car },
     { id: 'importData', label: 'นำเข้าข้อมูล', icon: Upload },
     { id: 'reports', label: 'รายงาน', icon: BarChart3 },
     { id: 'users', label: 'ผู้ใช้งาน', icon: UserCircle, adminOnly: true },

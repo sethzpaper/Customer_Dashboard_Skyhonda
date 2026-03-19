@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Shield, Bell, Globe, Database, Save, Moon, Sun, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
+import { Shield, Save, Moon, Sun, Image as ImageIcon } from 'lucide-react';
 import { FeaturedModel } from '../App';
 
 interface SettingsProps {
@@ -10,31 +10,6 @@ interface SettingsProps {
 }
 
 const SettingsView: React.FC<SettingsProps> = ({ isDarkMode, setIsDarkMode, featuredModels, setFeaturedModels }) => {
-  const [newModel, setNewModel] = useState<Partial<FeaturedModel>>({});
-  const [isEditing, setIsEditing] = useState<number | null>(null);
-
-  const handleAddModel = () => {
-    if (newModel.title && newModel.image) {
-      if (isEditing !== null) {
-        setFeaturedModels(prev => prev.map(m => m.id === isEditing ? { ...m, ...newModel } as FeaturedModel : m));
-        setIsEditing(null);
-      } else {
-        const id = Math.max(0, ...featuredModels.map(m => m.id)) + 1;
-        setFeaturedModels(prev => [...prev, { ...newModel, id } as FeaturedModel]);
-      }
-      setNewModel({});
-    }
-  };
-
-  const handleEdit = (model: FeaturedModel) => {
-    setNewModel(model);
-    setIsEditing(model.id);
-  };
-
-  const handleDelete = (id: number) => {
-    setFeaturedModels(prev => prev.filter(m => m.id !== id));
-  };
-
   return (
     <div className="p-8 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -82,63 +57,14 @@ const SettingsView: React.FC<SettingsProps> = ({ isDarkMode, setIsDarkMode, feat
               <h3 className={isDarkMode ? 'text-white' : 'text-blue-900'}>จัดการ Featured Models (หน้าแรก)</h3>
             </div>
             
-            <div className="space-y-4 bg-gray-100 dark:bg-gray-800/50 p-6 rounded-2xl">
-              <h4 className={`text-sm font-bold uppercase tracking-widest ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {isEditing ? 'แก้ไขข้อมูล' : 'เพิ่มข้อมูลใหม่'}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input 
-                  type="text" 
-                  placeholder="ชื่อรุ่นรถ" 
-                  value={newModel.title || ''}
-                  onChange={e => setNewModel({...newModel, title: e.target.value})}
-                  className={`w-full border rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                />
-                <input 
-                  type="text" 
-                  placeholder="ราคาเริ่มต้น" 
-                  value={newModel.price || ''}
-                  onChange={e => setNewModel({...newModel, price: e.target.value})}
-                  className={`w-full border rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                />
-                <input 
-                  type="text" 
-                  placeholder="URL รูปภาพ" 
-                  value={newModel.image || ''}
-                  onChange={e => setNewModel({...newModel, image: e.target.value})}
-                  className={`w-full border rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-red-500 md:col-span-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                />
-                <textarea 
-                  placeholder="คำบรรยาย" 
-                  value={newModel.description || ''}
-                  onChange={e => setNewModel({...newModel, description: e.target.value})}
-                  className={`w-full border rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-red-500 md:col-span-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                />
-              </div>
-              <button 
-                onClick={handleAddModel}
-                className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-              >
-                {isEditing ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                {isEditing ? 'อัปเดตข้อมูล' : 'เพิ่มรายการ'}
-              </button>
-            </div>
-
             <div className="space-y-3">
+              <p className="text-sm text-gray-500 mb-4">รายการรถยนต์ที่แสดงในหน้าแรก (สามารถจัดการข้อมูลทั้งหมดได้ที่เมนู "จัดการรถยนต์")</p>
               {featuredModels.map(model => (
                 <div key={model.id} className={`flex items-center gap-4 p-4 rounded-2xl border ${isDarkMode ? 'bg-gray-800/30 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                   <img src={model.image} alt="" className="w-16 h-16 rounded-lg object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className={`font-bold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{model.title}</p>
                     <p className="text-xs text-gray-500 truncate">{model.description}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(model)} className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDelete(model.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
               ))}

@@ -1,31 +1,56 @@
 import React, { useState } from 'react';
-import { Send, Upload, Star, MessageSquare, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { SurveyResponse, SurveyType } from '../types';
+import { Send, Upload, Star, MessageSquare, AlertTriangle, CheckCircle2, Car } from 'lucide-react';
+import { SurveyResponse, SurveyType, Salesperson } from '../types';
+import { FeaturedModel } from '../App';
+import { googleSheetService } from '../services/googleSheetService';
 
 interface SurveyFormProps {
   isDarkMode: boolean;
+  carModels: FeaturedModel[];
+  salespersons: Salesperson[];
 }
 
-const SurveyForm: React.FC<SurveyFormProps> = ({ isDarkMode }) => {
+const SurveyForm: React.FC<SurveyFormProps> = ({ isDarkMode, carModels, salespersons }) => {
   const [formData, setFormData] = useState<Partial<SurveyResponse>>({
     SurveyType: 'Delivery',
     Sales_InfoClarity: 5,
     FollowUp_Requested: 'ไม่ใช่',
-    Status: 'เปิดอยู่'
+    Status: 'เปิดอยู่',
+    CarModel: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    
+    // Add timestamp and ID
+    const submissionData = {
+      ...formData,
+      ResponseID: `RESP-${Date.now()}`,
+      Timestamp: new Date().toISOString(),
+      Status: 'เปิดอยู่'
+    };
+
+    const success = await googleSheetService.submitSurvey(submissionData);
+    
+    setIsSubmitting(false);
+    if (success) {
       setIsSuccess(true);
+      // Reset form
+      setFormData({
+        SurveyType: 'Delivery',
+        Sales_InfoClarity: 5,
+        FollowUp_Requested: 'ไม่ใช่',
+        Status: 'เปิดอยู่',
+        CarModel: ''
+      });
       setTimeout(() => setIsSuccess(false), 3000);
-    }, 1500);
+    } else {
+      alert('เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง');
+    }
   };
 
   return (
@@ -61,13 +86,37 @@ const SurveyForm: React.FC<SurveyFormProps> = ({ isDarkMode }) => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400">รหัสพนักงานขาย (SalespersonID)</label>
-              <input 
-                type="text" 
-                placeholder="SALE-XXXXX"
+              <label className="text-sm font-medium text-gray-400">พนักงานขาย (Salesperson)</label>
+              <select 
                 className={`w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                value={formData.SalespersonID}
                 onChange={(e) => setFormData({...formData, SalespersonID: e.target.value})}
-              />
+              >
+                <option value="">-- เลือกพนักงานขาย --</option>
+                {salespersons.map(s => (
+                  <option key={s.SalespersonID} value={s.SalespersonID}>
+                    {s.Name} ({s.Team})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400">เลือกรุ่นรถยนต์</label>
+              <div className="relative">
+                <select 
+                  className={`w-full border rounded-xl pl-12 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  value={formData.CarModel}
+                  onChange={(e) => setFormData({...formData, CarModel: e.target.value})}
+                >
+                  <option value="">-- เลือกรุ่นรถ --</option>
+                  {carModels.map(model => (
+                    <option key={model.id} value={model.title}>
+                      {model.title} {model.chassisCode ? `(${model.chassisCode})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <Car className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              </div>
             </div>
           </div>
 

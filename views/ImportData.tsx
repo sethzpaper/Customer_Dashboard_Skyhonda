@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, Link as LinkIcon, Clipboard, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
 import { Customer } from '../types';
+import { googleSheetService } from '../services/googleSheetService';
 
 interface ImportDataProps {
   isDarkMode: boolean;
@@ -91,8 +92,16 @@ const ImportData: React.FC<ImportDataProps> = ({ isDarkMode }) => {
     }
 
     // Simple validation simulation
-    const successCount = dataToImport.filter(c => c.CustomerID && c.Name).length;
+    const validData = dataToImport.filter(c => c.CustomerID && c.Name);
+    const successCount = validData.length;
     const failedCount = dataToImport.length - successCount + (errors.length > 0 ? 1 : 0);
+
+    if (successCount > 0) {
+      const success = await googleSheetService.saveCustomers(validData);
+      if (!success) {
+        errors.push('เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Google Sheets');
+      }
+    }
 
     setImportResult({
       success: successCount,
